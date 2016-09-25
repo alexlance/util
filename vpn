@@ -1,0 +1,12 @@
+#!/bin/bash
+# -N do not execute a command
+# -D socks port forwarding
+
+cmd="ssh -N -D 2000 vpn"
+trap 'echo "killing ssh"; pkill -f "$cmd"; exit 0' SIGHUP SIGINT SIGQUIT SIGTERM
+while true; do
+  pkill -f "$cmd"
+  sleep 2
+  echo "$(date) running: $cmd"
+  $cmd
+done

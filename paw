@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+
+
+# add a new password
+if [ "${1}" == "-a" ]; then
+
+  read -p "username: " username
+  read -p "password $(apg -n1 -m 32 -x 64) : " password
+  read -p "morepriv: " private
+  read -p "keywords: " keywords
+  read -p "passphrase: " -s passphrase
+
+  ssh -q -t mail <<EOF
+#!/bin/bash
+set -euo pipefail
+cd Passwords
+gpg -o- --passphrase "${passphrase}" validate.asc
+num=\$(ls -1 *[0-9]* | sort | tail -1 | grep -oE '[0-9]+')
+let num++
+file="file\$(printf "%03d" \${num}).asc"
+if [ ! -f "\${file}" ]; then
+  echo "writing: \${file}"
+  echo "$username | $password | $private" \
+    | gpg -q --no-tty -c --passphrase '${passphrase}' --cipher-algo AES256 -a --comment "${keywords}" -o \${file}
+fi
+EOF
+
+# retrieve an existing password
+else
+  read -p "passphrase: " -s passphrase
+  xclip -i <<< $(ssh -q -t mail <<EOF
+#!/bin/bash
+set -euo pipefail
+cd Passwords
+file=\$(grep -l "${@}" *.asc | head -1)
+cred=\$(gpg -q --no-tty --passphrase "${passphrase}" -o - \${file})
+echo "\${file} \${cred}" | cut -f1 -d'|' > /dev/stderr
+echo -n \${cred} | cut -f2 -d'|'
+EOF
+  )
+fi
