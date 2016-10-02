@@ -7,7 +7,7 @@ d=$(dirname ${1})
 t=$(basename ${1})
 
 # check passphrase is correct, prevents typos when encrypting
-read -p "passphrase: " -s passphrase
+[ -v passphrase ] || read -p "passphrase: " -s passphrase
 gpg -q --no-tty -o- --passphrase "${passphrase}" /home/alla/bin/validate.asc
 
 # Encrypt a directory/ to directoy.tar.asc
