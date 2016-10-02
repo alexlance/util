@@ -33,7 +33,7 @@ else
 #!/bin/bash
 set -euo pipefail
 cd Passwords
-file=\$(grep -l "${@}" *.asc | head -1)
+file=\$(grep -l "${@}" *.asc | tail -1)
 cred=\$(gpg -q --no-tty --passphrase "${passphrase}" -o - \${file})
 echo "\${file} \${cred}" | cut -f1 -d'|' > /dev/stderr
 echo -n \${cred} | cut -f2 -d'|'
