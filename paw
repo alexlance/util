@@ -29,7 +29,7 @@ EOF
 # retrieve an existing password
 else
   read -p "passphrase: " -s passphrase
-  xclip -i <<< $(ssh -q -t mail <<EOF
+  (ssh -q -t mail <<EOF
 #!/bin/bash
 set -euo pipefail
 cd Passwords
@@ -38,5 +38,5 @@ cred=\$(gpg -q --no-tty --passphrase "${passphrase}" -o - \${file})
 echo "\${file} \${cred}" | cut -f1 -d'|' > /dev/stderr
 echo -n \${cred} | cut -f2 -d'|'
 EOF
-  )
+  ) | xclip -i -selection clipboard -f | xclip -i -selection primary
 fi
