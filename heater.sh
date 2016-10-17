@@ -16,7 +16,7 @@ fi
 on="$(curl -s -X GET http://localhost:5000/api/device/heater | grep state.*1)"
 
 function toggle() {
-  mplayer /home/alla/bin/click.mp3
+  #mplayer /home/alla/bin/click.mp3
   curl -s -X POST http://localhost:5000/api/device/heater
 }
 
