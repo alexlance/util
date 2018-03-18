@@ -1,7 +1,7 @@
 #!/bin/bash
 
-swap=$(free | grep Swap | awk '{print $3}')
+swap=$(free --mega | grep Swap | awk '{print $3}')
 
 if [ "${swap}" -ne "0" ]; then
-  echo "swap: ${swap}"
+  echo "${swap}mb"
 fi
