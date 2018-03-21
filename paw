@@ -41,5 +41,5 @@ echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
 echo -n \${cred} | cut -f2 -d'|'
 EOF
   )
-  echo $p | xclip -i -selection clipboard -f | xclip -i -selection primary
+  echo $p | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary
 fi
