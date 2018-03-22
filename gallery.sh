@@ -30,6 +30,6 @@ cd ${pwd}/${g}
 
 # write out an index.html file
 echo -e "<html>\n<head></head>\n<body>\n\n" > ${pwd}/${g}/index.html
-find ./ -type f \( -iname \*.jpg -o -iname \*.png -o -iname \*.gif \) -exec echo -e "<img src='{}'>\n<br>" >> ${pwd}/${g}/index.html \;
-echo -e "</body>>\n</html>" >> ${pwd}/${g}/index.html
+find ./ -type f | sort -V | grep -v index.html | xargs -I{} echo -e "<img src='{}'>\n<br>" >> ${pwd}/${g}/index.html
+echo -e "</body>\n</html>" >> ${pwd}/${g}/index.html
 echo "Wrote ${pwd}/${g}/index.html"
