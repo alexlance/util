@@ -1,9 +1,30 @@
 #!/bin/bash
 set -euo pipefail
 
+# retrieve an existing password
+if [ ${#} -eq 0 ]; then
+
+  read -p "passphrase: " -s passphrase
+  echo
+  while read -p "search for: " line; do
+
+    p=$(ssh -q -t mail <<EOF
+#!/bin/bash
+set -euo pipefail
+cd Passwords
+file=\$(grep -l "${line}" *.asc | tail -1)
+cred=\$(gpg -q --no-tty --passphrase "${passphrase}" -o - \${file})
+echo > /dev/stderr
+grep "${line}" *.asc > /dev/stderr
+echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
+echo -n \${cred} | cut -f2 -d'|'
+EOF
+  ) || true
+    echo "$p" | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary
+  done
 
 # add a new password
-if [ "${1}" == "-a" ]; then
+elif [ "${1}" == "-a" ]; then
 
   read -p "username: " username
   read -p "password $(apg -n1 -m 32 -x 64) : " password
@@ -26,20 +47,4 @@ if [ ! -f "\${file}" ]; then
 fi
 EOF
 
-# retrieve an existing password
-else
-  read -p "passphrase: " -s passphrase
-  p=$(ssh -q -t mail <<EOF
-#!/bin/bash
-set -euo pipefail
-cd Passwords
-file=\$(grep -l "${@}" *.asc | tail -1)
-cred=\$(gpg -q --no-tty --passphrase "${passphrase}" -o - \${file})
-echo > /dev/stderr
-grep "${@}" *.asc > /dev/stderr
-echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
-echo -n \${cred} | cut -f2 -d'|'
-EOF
-  )
-  echo $p | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary
 fi
