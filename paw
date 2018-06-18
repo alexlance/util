@@ -7,36 +7,37 @@ if [ ${#} -eq 0 ]; then
   read -p "passphrase: " -s passphrase
   echo
   while read -p "search for: " line; do
-
     p=$(ssh -q -t mail <<EOF
 #!/bin/bash
 set -euo pipefail
 cd Passwords
-file=\$(grep -l "${line}" *.asc | tail -1)
+gpg -q -o- --passphrase "${passphrase}" validate.asc >/dev/null || exit 1
+file=\$(grep -E "Comment: .*${line}" *.asc | sort | tee /dev/stderr | cut -f1 -d':' | tail -1) || exit 0
 cred=\$(gpg -q --no-tty --passphrase "${passphrase}" -o - \${file})
-echo > /dev/stderr
-grep "${line}" *.asc > /dev/stderr
 echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
 echo -n \${cred} | cut -f2 -d'|'
 EOF
-  ) || true
+    )
     echo $p | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary
   done
 
 # add a new password
 elif [ "${1}" == "-a" ]; then
 
+  demo=""
+  which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
+
   read -p "username: " username
-  read -p "password $(apg -n1 -m 32 -x 64) : " password
-  read -p "morepriv: " private
-  read -p "keywords: " keywords
+  read -p "password${demo}: " password
+  read -p "additional info to be encrypted: " private
+  read -p "searchable keywords: " keywords
   read -p "passphrase: " -s passphrase
 
   ssh -q -t mail <<EOF
 #!/bin/bash
 set -euo pipefail
 cd Passwords
-gpg -o- --passphrase "${passphrase}" validate.asc
+gpg -q -o- --passphrase "${passphrase}" >/dev/null validate.asc
 num=\$(ls -1 *[0-9]* | sort | tail -1 | grep -oE '[0-9]+')
 let num++
 file="file\$(printf "%03d" \${num}).asc"
