@@ -27,11 +27,11 @@ elif [ "${1}" == "-a" ]; then
   demo=""
   which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
 
-  read -p "username: " username
-  read -p "password${demo}: " password
-  read -p "additional info to be encrypted: " private
-  read -p "searchable keywords: " keywords
-  read -p "passphrase: " -s passphrase
+  [ "${username}" ]   || read -p "username: " username
+  [ "${password}" ]   || read -p "password${demo}: " password
+  [ "${private}" ]    || read -p "additional info to be encrypted: " private
+  [ "${keywords}" ]   || read -p "searchable keywords: " keywords
+  [ "${passphrase}" ] || read -p "passphrase: " -s passphrase
 
   ssh -q -t mail <<EOF
 #!/bin/bash
