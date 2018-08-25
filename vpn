@@ -1,12 +1,9 @@
 #!/bin/bash
-# -N do not execute a command
-# -D socks port forwarding
+set -uxo pipefail
 
-cmd="ssh -N -D 2000 vpn"
-trap 'echo "killing ssh"; pkill -f "$cmd"; exit 0' SIGHUP SIGINT SIGQUIT SIGTERM
+trap 'echo "killing sshuttle"; killall sshuttle; exit 0' SIGHUP SIGINT SIGQUIT SIGTERM
 while true; do
-  pkill -f "$cmd"
+  pkill sshuttle
   sleep 2
-  echo "$(date) running: $cmd"
-  $cmd
+  sshuttle -e "ssh -o BatchMode=yes -i /home/alla/.ssh/id_ed25519" --dns -x 104.156.233.200/32 -r alla@45.32.53.181:443 0/0
 done
