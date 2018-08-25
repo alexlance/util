@@ -5,5 +5,5 @@ trap 'echo "killing sshuttle"; killall sshuttle; exit 0' SIGHUP SIGINT SIGQUIT S
 while true; do
   pkill sshuttle
   sleep 2
-  sshuttle -e "ssh -o BatchMode=yes -i /home/alla/.ssh/id_ed25519" --dns -x 104.156.233.200/32 -r alla@45.32.53.181:443 0/0
+  sshuttle -e "ssh -o BatchMode=yes -i /home/alla/.ssh/id_ed25519" --no-latency-control --dns -x 192.168.1.0/24 -x 104.156.233.200/32 -r alla@vpn:443 0/0
 done
