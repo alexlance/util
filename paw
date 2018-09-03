@@ -44,7 +44,7 @@ file="file\$(printf "%03d" \${num}).asc"
 if [ ! -f "\${file}" ]; then
   echo "writing: \${file}"
   echo "$username | $password | $private" \
-    | gpg -q --no-tty -c --passphrase '${passphrase}' --cipher-algo AES256 -a --comment "${keywords}" -o \${file}
+    | gpg -q --no-tty -c --passphrase '${passphrase}' --cipher-algo AES256 -a --comment '${keywords}' -o \${file}
 fi
 EOF
 
