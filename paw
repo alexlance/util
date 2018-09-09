@@ -11,9 +11,9 @@ if [ ${#} -eq 0 ]; then
 #!/bin/bash
 set -euo pipefail
 cd Passwords
-gpg -q -o- --passphrase "${passphrase}" validate.asc >/dev/null || exit 1
+gpg --batch -q -o- --passphrase "${passphrase}" validate.asc >/dev/null || exit 1
 file=\$(grep -E "Comment: .*${line}" *.asc | sort | tee /dev/stderr | cut -f1 -d':' | tail -1) || exit 0
-cred=\$(gpg -q --no-tty --passphrase "${passphrase}" -o - \${file})
+cred=\$(gpg --batch -q --no-tty --passphrase "${passphrase}" -o - \${file})
 echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
 echo -n \${cred} | cut -f2 -d'|'
 EOF
@@ -37,14 +37,14 @@ elif [ "${1}" == "-a" ]; then
 #!/bin/bash
 set -euo pipefail
 cd Passwords
-gpg -q -o- --passphrase "${passphrase}" >/dev/null validate.asc
+gpg --batch -q -o- --passphrase "${passphrase}" >/dev/null validate.asc
 num=\$(ls -1 *[0-9]* | sort | tail -1 | grep -oE '[0-9]+')
 let num++
 file="file\$(printf "%03d" \${num}).asc"
 if [ ! -f "\${file}" ]; then
   echo "writing: \${file}"
   echo "$username | $password | $private" \
-    | gpg -q --no-tty -c --passphrase '${passphrase}' --cipher-algo AES256 -a --comment '${keywords}' -o \${file}
+    | gpg --batch -q --no-tty -c --passphrase '${passphrase}' --cipher-algo AES256 -a --comment '${keywords}' -o \${file}
 fi
 EOF
 
