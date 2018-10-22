@@ -1,10 +1,9 @@
 #!/bin/bash
 
-for f in /sys/class/backlight/intel_backlight/brightness \
-         /sys/class/backlight/mba6x_backlight/brightness \
-         /sys/class/backlight/acpi_video0/brightness ; do
+for f in /sys/class/backlight/intel_backlight/brightness  /sys/class/backlight/mba6x_backlight/brightness  /sys/class/backlight/acpi_video0/brightness; do
 
 if [ -f ${f} ]; then
+echo $f
 
   cur=$(cat $f)
 
@@ -16,3 +15,5 @@ if [ -f ${f} ]; then
     echo $cur > $f
   fi
 fi
+
+done
