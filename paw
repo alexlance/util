@@ -3,10 +3,11 @@ set -euo pipefail
 
 # retrieve an existing password
 if [ ${#} -eq 0 ]; then
-
-  read -p "passphrase: " -s passphrase
-  echo
   while read -p "search for: " line; do
+    if [ $(( "$(date +%s)" - ${last_success:-0} )) -gt 43200 ]; then
+      read -p "passphrase: " -s passphrase
+      echo
+    fi
     p=$(ssh -q -t mail <<EOF
 #!/bin/bash
 set -euo pipefail
@@ -18,7 +19,7 @@ echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
 echo -n \${cred} | cut -f2 -d'|'
 EOF
     )
-    echo $p | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary
+    echo "$p" | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary && last_success=$(date +%s)
   done
 
 # add a new password
