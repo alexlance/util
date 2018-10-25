@@ -19,7 +19,7 @@ echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
 echo -n \${cred} | cut -f2 -d'|'
 EOF
     )
-    echo "$p" | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary && last_success=$(date +%s)
+    echo $p | xclip -loops 3 -i -selection clipboard -f | xclip -i -selection primary && last_success=$(date +%s)
   done
 
 # add a new password
