@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+import sys
+import os
+
+ret = 1
+for filename in os.listdir("."):
+    if filename.endswith(".tf"):
+        n = os.path.join(".", filename)
+        with open(n, 'r') as f:
+            lines = f.read()
+
+        linesafter = lines.replace(sys.argv[1], sys.argv[2])
+
+        if lines != linesafter:
+            print(n)
+            with open(n, 'w') as f:
+                f.write(linesafter)
+            ret = 0
+sys.exit(ret)
