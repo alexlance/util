@@ -1,9 +1,0 @@
-#!/bin/bash
-image=docker.camplexer.com/terraform
-container="docker run -it -v ${HOME}/.aws:/root/.aws -v ${PWD}/..:/app -w /app/${PWD##*/} ${image}"
-
-case ${1} in
-  "update") docker pull ${image};;
-  "ls") ${container} terraform show | grep -E '^[a-zA-Z]' | tr -d ':';;
-     *) ${container} terraform "${@}";;
-esac
