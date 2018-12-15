@@ -8,7 +8,7 @@ if [ ${#} -eq 0 ]; then
       read -p "passphrase: " -s passphrase
       echo
     fi
-    p=$(ssh -o "AddKeysToAgent=${PAW_USE_AGENT:=no}" -q -t mail <<EOF
+    p=$(ssh -q -t mail <<EOF
 #!/bin/bash
 set -euo pipefail
 cd Passwords
