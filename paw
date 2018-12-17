@@ -2,7 +2,7 @@
 set -euo pipefail
 
 function get_remote_secret() {
-  cat <<EOF
+  ssh -q -t mail <<EOF
 #!/bin/bash
 set -euo pipefail
 cd Passwords
@@ -10,7 +10,23 @@ gpg --batch -q -o- --passphrase "${1}" validate.asc >/dev/null || exit 1
 file=\$(grep -E "Comment: .*${2}" *.asc | sort | tee /dev/stderr | cut -f1 -d':' | tail -1) || exit 0
 cred=\$(gpg --batch -q --no-tty --passphrase "${1}" -o - \${file})
 echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
-echo -n \${cred} | cut -f2 -d'|'
+echo -n \${cred} | cut -f2 -d'|' | xargs | tr -d $'\n'
+EOF
+}
+
+function store_remote_secret() {
+  ssh -q -t mail <<EOF
+#!/bin/bash
+set -euo pipefail
+cd Passwords
+gpg --batch -q -o- --passphrase "${1}" >/dev/null validate.asc
+num=\$(ls -1 *[0-9]* | sort | tail -1 | grep -oE '[0-9]+')
+let num++
+file="file\$(printf "%03d" \${num}).asc"
+if [ ! -f "\${file}" ]; then
+  echo "writing: \${file}"
+  echo "${2}" | gpg --batch -q --no-tty -c --passphrase '${1}' --cipher-algo AES256 -a --comment '${3}' -o \${file}
+fi
 EOF
 }
 
@@ -21,7 +37,7 @@ if [ ${#} -eq 0 ]; then
       read -p "passphrase: " -s passphrase
       echo
     fi
-    get_remote_secret "${passphrase}" "${query}" | ssh -q -t mail \
+    get_remote_secret "${passphrase}" "${query}" \
     | xclip -loops 3 -i -selection clipboard -f \
     | xclip -loops 3 -i -selection primary \
     && last_success=$(date +%s)
@@ -29,29 +45,12 @@ if [ ${#} -eq 0 ]; then
 
 # add a new password
 elif [ "${1}" == "-a" ]; then
-
   demo=""
   which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
-
   [ -v username ]   || read -p "username: " username
   [ -v password ]   || read -p "password${demo}: " password
-  [ -v private ]    || read -p "additional info to be encrypted: " private
+  [ -v private ]    || read -p "additional secret: " private
   [ -v keywords ]   || read -p "searchable keywords: " keywords
   [ -v passphrase ] || read -p "passphrase: " -s passphrase
-
-  ssh -q -t mail <<EOF
-#!/bin/bash
-set -euo pipefail
-cd Passwords
-gpg --batch -q -o- --passphrase "${passphrase}" >/dev/null validate.asc
-num=\$(ls -1 *[0-9]* | sort | tail -1 | grep -oE '[0-9]+')
-let num++
-file="file\$(printf "%03d" \${num}).asc"
-if [ ! -f "\${file}" ]; then
-  echo "writing: \${file}"
-  echo "$username | $password | $private" \
-    | gpg --batch -q --no-tty -c --passphrase '${passphrase}' --cipher-algo AES256 -a --comment '${keywords}' -o \${file}
-fi
-EOF
-
+  store_remote_secret "${passphrase}" "${username} | ${password} | ${private}" "${keywords}"
 fi
