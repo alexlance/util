@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+[ -v GPGENC_PASS ] || (echo "Ensure GPGENC_PASS is set" && exit 1)
+[ "${1}" ] || (echo "Enter filename as first argument" && exit 1)
+
+echo "${GPGENC_PASS}" | gpg --batch -q --no-tty --passphrase-fd 0 -c --cipher-algo AES256 -a --comment "${2:-}" -o "${1}.asc" "${1}"
+rm -f "${1}"
