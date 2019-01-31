@@ -15,6 +15,14 @@ if [ "$(hostname)" = "leaf" ]; then
       amixer set Master 3000- > /dev/null
     fi
   fi
+elif [ "$(hostname)" = "lyra" ]; then
+
+  if [ "$1" = "up" ]; then
+    pulsemixer --change-volume +10
+  else
+    pulsemixer --change-volume -10
+  fi
+
 else
   if [ "$1" = "up" ]; then
     amixer set Master 3000+ > /dev/null
