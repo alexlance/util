@@ -4,7 +4,7 @@ import os
 
 ret = 1
 for filename in os.listdir("."):
-    if filename.endswith(".tf"):
+    if not os.path.isdir(filename):
         n = os.path.join(".", filename)
         with open(n, 'r') as f:
             lines = f.read()
