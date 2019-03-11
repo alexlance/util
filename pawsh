@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+
+function get_remote_secret() {
+  stty -echo
+  ssh -q -t mail 'cd Passwords &&
+                  file=$(grep -HE "Comment: .*'${1}'" env*.asc | sort | cut -f1 -d":" | tail -1) &&
+                  gpg -q --no-tty --passphrase-fd 0 --pinentry-mode loopback -o - ${file}'
+  stty echo
+}
+
+function store_remote_secret() {
+  stty -echo
+  ssh -q -t mail 'cd Passwords &&
+                  num=$(ls -1 env*[0-9]*.asc | sort | tail -1 | grep -oE "[0-9]+") &&
+                  let num++ &&
+                  file="env$(printf "%03d" ${num})" &&
+                  echo "'${1}'" > ${file} &&
+                  [ ! -f "${file}.asc" ] &&
+                  gpg -c --passphrase-fd 0 --pinentry-mode loopback --cipher-algo AES256 -a --comment "'${2}'" -o ${file}.asc ${file}'
+  stty echo
+}
+
+# retrieve an existing password
+if [ ${#} -eq 0 ]; then
+  read -e -p "search for: " query
+  echo -n "passphrase: "
+  $(get_remote_secret "${query}") && echo "Starting shell..." && timeout --foreground 12h bash
+
+# add a new password
+elif [ "${1}" == "-a" ]; then
+  read -e -p "vars eg: export COLOUR=red MOOD=fire: " private
+  read -e -p "searchable keywords: " keywords
+  echo -n "passphrase: "
+  store_remote_secret "${private}" "${keywords}"
+fi
