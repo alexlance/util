@@ -15,9 +15,10 @@ function store_remote_secret() {
                   num=$(ls -1 env*[0-9]*.asc | sort | tail -1 | grep -oE "[0-9]+") &&
                   let num++ &&
                   file="env$(printf "%03d" ${num})" &&
-                  echo -n "'${1}'" > ${file} &&
                   [ ! -f "${file}.asc" ] &&
-                  gpg -c --passphrase-fd 0 --pinentry-mode loopback --cipher-algo AES256 -a --comment "'${2}'" -o ${file}.asc ${file}'
+                  echo -n "'${1}'" > ${file} &&
+                  gpg -c --passphrase-fd 0 --pinentry-mode loopback --cipher-algo AES256 -a --comment "'${2}'" -o ${file}.asc ${file} &&
+                  rm ${file}'
   stty echo
 }
 
