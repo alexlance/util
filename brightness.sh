@@ -2,6 +2,7 @@
 
 f="/sys/class/backlight/intel_backlight/brightness"
 #f="/sys/class/backlight/mba6x_backlight/brightness"
+[ $(hostname) == "sansa" ] && f="/sys/class/backlight/acpi_video0/brightness" # sansa
 cur=$(cat $f)
 
 if [ "$1" = "up" ]; then
