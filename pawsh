@@ -5,7 +5,7 @@ function get_remote_secret() {
   stty -echo
   ssh -q -t mail 'cd Passwords &&
                   file=$(grep -HE "Comment: .*'${1}'" env*.asc | sort | cut -f1 -d":" | tail -1) &&
-                  gpg -q --no-tty --passphrase-fd 0 --pinentry-mode loopback -o - ${file}'
+                  gpg -q --no-tty --passphrase-fd 0 --pinentry-mode loopback -o - ${file}' | tr -d $'\r'
   stty echo
 }
 
