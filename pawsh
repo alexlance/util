@@ -26,7 +26,7 @@ function store_remote_secret() {
 if [ ${#} -eq 0 ]; then
   read -e -p "search for: " query
   echo -n "passphrase: "
-  $(get_remote_secret "${query}") && echo "Starting shell..." && TMOUT=43200 bash
+  $(get_remote_secret "${query}") && echo "Starting shell..." && TMOUT=43200 bash -l
 
 # add a new password
 elif [ "${1}" == "-a" ]; then
