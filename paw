@@ -1,14 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+function search_secret() {
+  ssh -q -t mail grep -HE "${1}" Passwords/file*.asc
+}
+
 function get_remote_secret() {
-  ssh -q -t mail <<EOF
-#!/bin/bash
-set -euo pipefail
-cd Passwords
-file=\$(grep -HE "Comment: .*${2}" file*.asc | sort | tee /dev/stderr | cut -f1 -d':' | tail -1) || exit 0
-gpg --batch -q --no-tty --passphrase "${1}" -o - \${file}
-EOF
+  echo "${1}" | ssh -q -t mail gpg -d --batch -q --no-tty --passphrase-fd 0 -o - ${2}
 }
 
 function store_remote_secret() {
@@ -44,13 +42,17 @@ if [ ${#} -eq 0 ]; then
   while read -e -p "search for: " query; do
     if [ $(( "$(date +%s)" - ${last_success:-0} )) -gt 43200 ]; then
       read -e -p "passphrase: " -s passphrase
-      validate "${passphrase}"
+      validate "${passphrase}" && last_success=$(date +%s)
       echo
     fi
-    cred="$(get_remote_secret "${passphrase}" "${query}")" && last_success=$(date +%s)
-    echo -e "${cred}" | sed "1q;d" | xclip -loops 3 -i -selection primary -f   # username
-    echo -e "${cred}" | sed "2q;d" | xclip -loops 3 -i -selection clipboard    # password
-    echo -e "${cred}" | sed "3q;d"                                             # additional secret
+    files=$(search_secret "${query}")
+    if [ "${files}" ]; then
+      file=$(echo "${files}" | sort | tee /dev/stderr | cut -f1 -d':' | tail -1)
+      cred="$(get_remote_secret "${passphrase}" "${file}")"
+      echo -e "${cred}" | sed "1q;d" | xclip -loops 3 -i -selection primary -f   # username
+      echo -e "${cred}" | sed "2q;d" | xclip -loops 3 -i -selection clipboard    # password
+      echo -e "${cred}" | sed "3q;d"                                             # additional secret
+    fi
   done
 
 # add a new password
