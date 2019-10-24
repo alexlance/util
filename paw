@@ -9,17 +9,12 @@ function get_remote_secret() {
   echo "${1}" | ssh -q -t mail gpg -d --batch -q --no-tty --passphrase-fd 0 -o - ${2}
 }
 
+function get_next_filename() {
+  ssh -q -t mail ls -1 Passwords/file*[0-9]* | sort | tail -1 | grep -oE '[0-9]+'
+}
+
 function store_remote_secret() {
-  ssh -q -t mail <<EOF
-#!/bin/bash
-set -euo pipefail
-cd Passwords
-num=\$(ls -1 file*[0-9]* | sort | tail -1 | grep -oE '[0-9]+')
-let num++
-file="file\$(printf "%03d" \${num}).asc"
-if [ ! -f "\${file}" ]; then
-  echo "writing: \${file}"
-  echo -e "${2}" | gpg --batch -q --no-tty -c --passphrase '${1}' \
+  echo -e "${1}" | gpg --batch -q --no-tty -c \
     --cipher-algo AES256 \
     --digest-algo sha256 \
     --cert-digest-algo sha256 \
@@ -28,9 +23,8 @@ if [ ! -f "\${file}" ]; then
     --s2k-digest-algo sha256 \
     --s2k-count 65011712 \
     --force-mdc \
-    -a --comment '${3}' -o \${file}
-fi
-EOF
+    -a --comment "${2}" -o - | ssh -q -t mail "cat > Passwords/${3}"
+  echo "Wrote: ${3}"
 }
 
 function validate() {
@@ -57,13 +51,16 @@ if [ ${#} -eq 0 ]; then
 
 # add a new password
 elif [ "${1}" == "-a" ]; then
+  num=$(get_next_filename)
+  let num++
+  file="file$(printf "%03d" ${num}).asc"
+  echo "Intending to write: ${file}"
+
   demo=""
   which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
-  [ -v passphrase ] || read -e -p "passphrase: " -s passphrase
-  validate "${passphrase}"
   [ -v username ]   || read -e -p "username: " username
   [ -v password ]   || read -e -p "password${demo}: " password
   [ -v private ]    || read -e -p "additional secret: " private
   [ -v keywords ]   || read -e -p "searchable keywords: " keywords
-  store_remote_secret "${passphrase}" "${username}\n${password}\n${private}\n" "${keywords}"
+  store_remote_secret "${username}\n${password}\n${private}\n" "${keywords}" "${file}"
 fi
