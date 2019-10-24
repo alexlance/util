@@ -6,11 +6,8 @@ function get_remote_secret() {
 #!/bin/bash
 set -euo pipefail
 cd Passwords
-gpg --batch -q -o- --passphrase "${1}" validate.asc >/dev/null || exit 1
 file=\$(grep -HE "Comment: .*${2}" file*.asc | sort | tee /dev/stderr | cut -f1 -d':' | tail -1) || exit 0
-cred=\$(gpg --batch -q --no-tty --passphrase "${1}" -o - \${file})
-echo "\${cred}" | cut -f1 -d'|' > /dev/stderr
-echo -n \${cred} | cut -f2 -d'|' | xargs | tr -d $'\n'
+gpg --batch -q --no-tty --passphrase "${1}" -o - \${file}
 EOF
 }
 
@@ -19,15 +16,27 @@ function store_remote_secret() {
 #!/bin/bash
 set -euo pipefail
 cd Passwords
-gpg --batch -q -o- --passphrase "${1}" >/dev/null validate.asc
 num=\$(ls -1 file*[0-9]* | sort | tail -1 | grep -oE '[0-9]+')
 let num++
 file="file\$(printf "%03d" \${num}).asc"
 if [ ! -f "\${file}" ]; then
   echo "writing: \${file}"
-  echo "${2}" | gpg --batch -q --no-tty -c --passphrase '${1}' --cipher-algo AES256 -a --comment '${3}' -o \${file}
+  echo -e "${2}" | gpg --batch -q --no-tty -c --passphrase '${1}' \
+    --cipher-algo AES256 \
+    --digest-algo sha256 \
+    --cert-digest-algo sha256 \
+    --compress-algo none -z 0 \
+    --s2k-mode 3 \
+    --s2k-digest-algo sha256 \
+    --s2k-count 65011712 \
+    --force-mdc \
+    -a --comment '${3}' -o \${file}
 fi
 EOF
+}
+
+function validate() {
+  test "$(echo "${1}" | md5sum | grep -o '.....$')" == "5c  -" || (echo "Bad gpg passphrase" && exit 1)
 }
 
 # retrieve an existing password
@@ -35,22 +44,24 @@ if [ ${#} -eq 0 ]; then
   while read -e -p "search for: " query; do
     if [ $(( "$(date +%s)" - ${last_success:-0} )) -gt 43200 ]; then
       read -e -p "passphrase: " -s passphrase
+      validate "${passphrase}"
       echo
     fi
-    get_remote_secret "${passphrase}" "${query}" \
-    | xclip -loops 3 -i -selection clipboard -f \
-    | xclip -loops 3 -i -selection primary \
-    && last_success=$(date +%s)
+    cred="$(get_remote_secret "${passphrase}" "${query}")" && last_success=$(date +%s)
+    echo -e "${cred}" | sed "1q;d" | xclip -loops 3 -i -selection primary -f   # username
+    echo -e "${cred}" | sed "2q;d" | xclip -loops 3 -i -selection clipboard    # password
+    echo -e "${cred}" | sed "3q;d"                                             # additional secret
   done
 
 # add a new password
 elif [ "${1}" == "-a" ]; then
   demo=""
   which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
+  [ -v passphrase ] || read -e -p "passphrase: " -s passphrase
+  validate "${passphrase}"
   [ -v username ]   || read -e -p "username: " username
   [ -v password ]   || read -e -p "password${demo}: " password
   [ -v private ]    || read -e -p "additional secret: " private
   [ -v keywords ]   || read -e -p "searchable keywords: " keywords
-  [ -v passphrase ] || read -e -p "passphrase: " -s passphrase
-  store_remote_secret "${passphrase}" "${username} | ${password} | ${private}" "${keywords}"
+  store_remote_secret "${passphrase}" "${username}\n${password}\n${private}\n" "${keywords}"
 fi
