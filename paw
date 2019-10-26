@@ -36,7 +36,8 @@ if [ ${#} -eq 0 ]; then
   while read -e -p "search for: " query; do
     if [ $(( "$(date +%s)" - ${last_success:-0} )) -gt 43200 ]; then
       read -e -p "passphrase: " -s passphrase
-      validate "${passphrase}" && last_success=$(date +%s)
+      validate "${passphrase}" || continue
+      last_success=$(date +%s)
       echo
     fi
     files=$(search_secret "${query}")
