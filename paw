@@ -14,10 +14,6 @@ function get_next_filename() {
   ssh -q -t ${host} ls -1 ${path}/file*[0-9]* 2\>/dev/null | sort | tail -1 | grep -oE '[0-9]+'
 }
 
-function validate() {
-  test "$(echo "${1}" | md5sum | grep -o '.....$')" == "5c  -" || (echo "Bad gpg passphrase" && exit 1)
-}
-
 function store_remote_secret() {
   encrypt_io "${1}" "${2}" | ssh -q -t ${host} "cat > ${path}/${3}"
   echo "Wrote: ${3}"
@@ -74,7 +70,6 @@ session=43200
 if [[ ! -t 0 ]]; then
   read -a query
   [ -v passphrase ] || read -e -p "gpg passphrase: " -s passphrase < /dev/tty
-  validate "${passphrase}" || exit 1
   files=$(search_secret "${query}")
   if [ "${files}" ]; then
     file=$(echo "${files}" | sort | cut -f1 -d':' | tail -1)
@@ -104,14 +99,13 @@ if [[ ! -t 0 ]]; then
   exit 0
 fi
 
-# retrieve an existing password
+# interactive mode: retrieve an existing password
 while read -e -p "${status:-}Enter \"new\" or search for: " query; do
   if [ "${query}" == "new" ]; then
     add_new_secret
   elif [ "${query}" ]; then
     if [ $(( "$(date +%s)" - ${last_success:- 0} + 1 )) -gt ${session} ]; then
       read -e -p "gpg passphrase: " -s passphrase
-      validate "${passphrase}" || continue
       echo
     fi
     files=$(search_secret "${query}")
