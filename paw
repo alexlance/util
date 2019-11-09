@@ -2,18 +2,28 @@
 set -euo pipefail
 
 function search_secret() {
-  ssh -q -t mail grep -HE "${1}" Passwords/file*.asc
+  ssh -q -t ${host} grep -HE "${1}" ${path}/file*.asc \
+    || ssh -q -t ${host} find ${path} -name "*${1}*" -printf '%p:' -exec grep Comment: {} \\\;
 }
 
 function get_remote_secret() {
-  echo "${1}" | ssh -q -t mail gpg -d --batch -q --no-tty --passphrase-fd 0 -o - ${2}
+  echo "${1}" | ssh -q -t ${host} gpg -d --batch -q --no-tty --passphrase-fd 0 -o - ${2}
 }
 
 function get_next_filename() {
-  ssh -q -t mail ls -1 Passwords/file*[0-9]* | sort | tail -1 | grep -oE '[0-9]+'
+  ssh -q -t ${host} ls -1 ${path}/file*[0-9]* | sort | tail -1 | grep -oE '[0-9]+' || echo 0
+}
+
+function validate() {
+  test "$(echo "${1}" | md5sum | grep -o '.....$')" == "5c  -" || (echo "Bad gpg passphrase" && exit 1)
 }
 
 function store_remote_secret() {
+  encrypt_io "${1}" "${2}" | ssh -q -t ${host} "cat > ${path}/${3}"
+  echo "Wrote: ${3}"
+}
+
+function encrypt_io() {
   echo -e "${1}" | gpg --batch -q --no-tty -c \
     --cipher-algo AES256 \
     --digest-algo sha256 \
@@ -23,45 +33,52 @@ function store_remote_secret() {
     --s2k-digest-algo sha256 \
     --s2k-count 65011712 \
     --force-mdc \
-    -a --comment "${2}" -o - | ssh -q -t mail "cat > Passwords/${3}"
-  echo "Wrote: ${3}"
+    -a --comment "${2}" -o -
 }
 
-function validate() {
-  test "$(echo "${1}" | md5sum | grep -o '.....$')" == "5c  -" || (echo "Bad gpg passphrase" && exit 1)
+function add_new_secret() {
+  local num=$(get_next_filename)
+  let num++
+  local file="file$(printf "%03d" ${num}).asc"
+  echo "Intending to create: ${host}:${path}/${file}"
+  local demo=""
+  which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
+  read -e -p "username: " username
+  if [ "${username}" ]; then
+    read -e -p "password${demo}: " password
+    read -e -p "additional secret: " private
+    read -e -p "searchable keywords: " keywords
+    store_remote_secret "${username}\n${password}\n${private}\n" "${keywords}" "${file}"
+  fi
 }
+
+session=43200
+[ "${#}" -eq 0 ] && echo "usage: $(basename $0) USER@HOST:PATH" && exit 1
+IFS=: read host path <<< "${1}"
 
 # retrieve an existing password
-if [ ${#} -eq 0 ]; then
-  while read -e -p "search for: " query; do
-    if [ $(( "$(date +%s)" - ${last_success:-0} )) -gt 43200 ]; then
-      read -e -p "passphrase: " -s passphrase
+while read -e -p "${status:-}Enter \"new\" or search for: " query; do
+  if [ "${query}" == "new" ]; then
+    add_new_secret
+  elif [ "${query}" ]; then
+    if [ $(( "$(date +%s)" - ${last_success:- 0} + 1 )) -gt ${session} ]; then
+      read -e -p "gpg passphrase: " -s passphrase
       validate "${passphrase}" || continue
-      last_success=$(date +%s)
       echo
     fi
     files=$(search_secret "${query}")
     if [ "${files}" ]; then
       file=$(echo "${files}" | sort | tee /dev/stderr | cut -f1 -d':' | tail -1)
       cred="$(get_remote_secret "${passphrase}" "${file}")"
+      [ "${cred}" ] && last_success=$(date +%s)
       echo -e "${cred}" | sed "1q;d" | xclip -loops 3 -i -selection primary -f   # username
       echo -e "${cred}" | sed "2q;d" | xclip -loops 3 -i -selection clipboard    # password
       echo -e "${cred}" | sed "3q;d"                                             # additional secret
     fi
-  done
+  fi
 
-# add a new password
-elif [ "${1}" == "-a" ]; then
-  num=$(get_next_filename)
-  let num++
-  file="file$(printf "%03d" ${num}).asc"
-  echo "Intending to write: ${file}"
-
-  demo=""
-  which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
-  [ -v username ]   || read -e -p "username: " username
-  [ -v password ]   || read -e -p "password${demo}: " password
-  [ -v private ]    || read -e -p "additional secret: " private
-  [ -v keywords ]   || read -e -p "searchable keywords: " keywords
-  store_remote_secret "${username}\n${password}\n${private}\n" "${keywords}" "${file}"
-fi
+  session_time_remaining=$(( ( ${last_success:- 0} + ${session} - $(date +%s) + 1 ) / 60  ))
+  if [ ${session_time_remaining} -gt 0 ]; then
+    status="[${session_time_remaining}m] "
+  fi
+done
