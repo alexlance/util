@@ -11,7 +11,7 @@ function get_remote_secret() {
 }
 
 function get_next_filename() {
-  ssh -q -t ${host} ls -1 ${path}/file*[0-9]* | sort | tail -1 | grep -oE '[0-9]+' || echo 0
+  ssh -q -t ${host} ls -1 ${path}/file*[0-9]* 2\>/dev/null | sort | tail -1 | grep -oE '[0-9]+'
 }
 
 function validate() {
@@ -38,23 +38,41 @@ function encrypt_io() {
 
 function add_new_secret() {
   local num=$(get_next_filename)
-  let num++
+  num=$(( num+1 ))
   local file="file$(printf "%03d" ${num}).asc"
   echo "Intending to create: ${host}:${path}/${file}"
   local demo=""
   which apg 2>&1 >/dev/null && demo=" (eg: $(apg -n1 -m 32 -x 64))"
-  read -e -p "username: " username
+  read -r -e -p "username: " username
   if [ "${username}" ]; then
-    read -e -p "password${demo}: " password
-    read -e -p "additional secret: " private
-    read -e -p "searchable keywords: " keywords
-    store_remote_secret "${username}\n${password}\n${private}\n" "${keywords}" "${file}"
+    read -r -e -p "password${demo}: " password
+    read -r -e -p "additional secret: " private
+    read -r -e -p "searchable keywords: " keywords
+    store_remote_secret "${username//\\/\\\\}\n${password//\\/\\\\}\n${private//\\/\\\\}\n" "${keywords}" "${file}"
   fi
 }
 
-session=43200
 [ "${#}" -eq 0 ] && echo "usage: $(basename $0) USER@HOST:PATH" && exit 1
 IFS=: read host path <<< "${1}"
+session=43200
+
+
+# handle stdin searches, like eg:
+# IFS=$'\n' read -r -d $'\0' user pass add <<< $(echo test | paw host:Passwords)
+if [[ ! -t 0 ]]; then
+  read -a query
+  [ -v passphrase ] || read -e -p "gpg passphrase: " -s passphrase < /dev/tty
+  validate "${passphrase}" || exit 1
+  files=$(search_secret "${query}")
+  if [ "${files}" ]; then
+    file=$(echo "${files}" | sort | cut -f1 -d':' | tail -1)
+    cred="$(get_remote_secret "${passphrase}" "${file}")"
+    sed "1q;d" <<< "${cred}" # username
+    sed "2q;d" <<< "${cred}" # password
+    sed "3q;d" <<< "${cred}" # additional secret
+  fi
+  exit 0
+fi
 
 # retrieve an existing password
 while read -e -p "${status:-}Enter \"new\" or search for: " query; do
@@ -71,13 +89,13 @@ while read -e -p "${status:-}Enter \"new\" or search for: " query; do
       file=$(echo "${files}" | sort | tee /dev/stderr | cut -f1 -d':' | tail -1)
       cred="$(get_remote_secret "${passphrase}" "${file}")"
       [ "${cred}" ] && last_success=$(date +%s)
-      echo -e "${cred}" | sed "1q;d" | xclip -loops 3 -i -selection primary -f   # username
-      echo -e "${cred}" | sed "2q;d" | xclip -loops 3 -i -selection clipboard    # password
-      echo -e "${cred}" | sed "3q;d"                                             # additional secret
+      sed "1q;d" <<< "${cred}" | xclip -loops 3 -i -selection primary -f   # username
+      sed "2q;d" <<< "${cred}" | xclip -loops 3 -i -selection clipboard    # password
+      sed "3q;d" <<< "${cred}"                                             # additional secret
     fi
   fi
 
-  session_time_remaining=$(( ( ${last_success:- 0} + ${session} - $(date +%s) + 1 ) / 60  ))
+  session_time_remaining=$(( ( ${last_success:- 0} + ${session} - $(date +%s) + 1 ) / 60 ))
   if [ ${session_time_remaining} -gt 0 ]; then
     status="[${session_time_remaining}m] "
   fi
