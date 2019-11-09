@@ -52,13 +52,25 @@ function add_new_secret() {
   fi
 }
 
-[ "${#}" -eq 0 ] && echo "usage: $(basename $0) USER@HOST:PATH" && exit 1
+if [ "${#}" -eq 0 ]; then
+  cat <<EOF
+# interactive mode
+usage: paw USER@HOST:PATH
+
+# one-shot mode
+usage: echo searchstring | paw USER@HOST:PATH
+
+# populate environment vars mode
+usage: \$(echo searchstring | paw USER@HOST:PATH [VAR_ONE] [VAR_TWO] [VAR_THREE])
+EOF
+  exit 1
+fi
+
 IFS=: read host path <<< "${1}"
 session=43200
 
 
-# handle stdin searches, like eg:
-# IFS=$'\n' read -r -d $'\0' user pass add <<< $(echo test | paw host:Passwords)
+# Handle stdin searches
 if [[ ! -t 0 ]]; then
   read -a query
   [ -v passphrase ] || read -e -p "gpg passphrase: " -s passphrase < /dev/tty
@@ -67,9 +79,27 @@ if [[ ! -t 0 ]]; then
   if [ "${files}" ]; then
     file=$(echo "${files}" | sort | cut -f1 -d':' | tail -1)
     cred="$(get_remote_secret "${passphrase}" "${file}")"
-    sed "1q;d" <<< "${cred}" # username
-    sed "2q;d" <<< "${cred}" # password
-    sed "3q;d" <<< "${cred}" # additional secret
+
+    one=$(sed "1q;d" <<< "${cred}") # username
+    two=$(sed "2q;d" <<< "${cred}") # password
+    thr=$(sed "3q;d" <<< "${cred}") # additional secret
+
+    shift
+
+    if [ "${#}" -eq 0 ]; then
+      echo "${one}"
+      echo "${two}"
+      echo "${thr}"
+    elif [ "${#}" -eq 1 ]; then
+      echo "export $1=${one}"
+    elif [ "${#}" -eq 2 ]; then
+      echo "export $1=${one}"
+      echo "export $2=${two}"
+    elif [ "${#}" -eq 3 ]; then
+      echo "export $1=${one}"
+      echo "export $2=${two}"
+      echo "export $3=${thr}"
+    fi
   fi
   exit 0
 fi
