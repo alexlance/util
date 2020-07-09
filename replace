@@ -7,7 +7,7 @@ import glob
 ret = 1
 for n in glob.iglob('**', recursive=True):
     if not os.path.isdir(n):
-        with open(n, 'r') as f:
+        with open(n, 'r', encoding="utf8", errors='ignore') as f:
             lines = f.read()
 
         linesafter = lines.replace(sys.argv[1], sys.argv[2])

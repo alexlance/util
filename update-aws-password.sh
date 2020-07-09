@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-p="$(apg -m 30 -a1 -x 50 -MSNCL -E \\\$/{}\|[]*#~\'\"\`\;\-\^\(\)\!\<\>\= | tail -1)"
+p="$(apg -n 1 -m 30 -a1 -x 50 -MSNCL -E \\\$/{}\|[]*#~\'\"\`\;\-\^\(\)\!\<\>\=)"
 
 aws iam update-login-profile --user-name alex.lance --password "${p}" || (echo "nope: ${p}" && exit 1)
 
