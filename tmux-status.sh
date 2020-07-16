@@ -1,5 +1,8 @@
 #!/bin/bash
 
+ipa="$(curl -s ifconfig.co)"
+[[ "${ipa}" =~ "103."* ]] && echo -n "[VPN] "
+
 swap=$(free --mega | grep Swap | awk '{print $3}')
 [ "${swap}" -ne "0" ] && echo -n "${swap}mb "
 
