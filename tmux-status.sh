@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ipa="$(curl -s ifconfig.co)"
+ipa="$(curl -s https://alexlance.com/ip)"
 [[ "${ipa}" =~ "103."* ]] && echo -n "[VPN] "
 
 swap=$(free --mega | grep Swap | awk '{print $3}')
