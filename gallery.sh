@@ -1,8 +1,11 @@
 #!/bin/bash
 
+echo "use fgallery"
+exit 0
+
 if [ -z "$1" ] || [ -z "$2" ]; then
   echo "Usage: $0 SOURCEDIRECTORY MAXWIDTH"
-  echo "Eg: $0 the_images/ 200" 
+  echo "Eg: $0 the_images/ 200"
   echo "This will create the_images_gallery with the website gallery inside and index.html file inside."
   exit 1
 fi
@@ -11,7 +14,7 @@ pwd=$(pwd)
 pwd=${pwd%/}
 g=${1%/}_gallery
 
-if [ ! -d "$g" ]; then 
+if [ ! -d "$g" ]; then
   mkdir $g && echo "Created $g/"
 else
   echo "$g already exists, remove it and try again."
