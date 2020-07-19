@@ -5,6 +5,7 @@ ipa="$(curl -s https://alexlance.com/ip)"
 
 swap=$(free --mega | grep Swap | awk '{print $3}')
 [ "${swap}" -ne "0" ] && echo -n "${swap}mb "
+[ "${swap}" -gt 2000 ] && ratpoison -c "echo swap ${swap}mb"
 
 if [ "$(hostname)" == "lyra" ]; then
   b="$(acpi -b 2>/dev/null | grep -oE '[0-9]+%')"
