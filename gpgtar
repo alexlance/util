@@ -2,25 +2,41 @@
 set -euo pipefail
 
 # does the file or dir exist
-test -e ${1}
-d=$(dirname ${1})
-t=$(basename ${1})
+test -e "$1"
+d=$(dirname "$1")
+t=$(basename "$1")
 
 # check passphrase is correct, prevents typos when encrypting
 [ -v passphrase ] || read -p "passphrase: " -s passphrase
 gpg --batch -q --no-tty -o- --passphrase "${passphrase}" /home/alla/bin/validate.asc
 
-# Encrypt a directory/ to directoy.tar.asc
-if [ -d "${1}" ]; then
+# Encrypt a directory/ to directory.tar.asc
+if [ -d "$1" ]; then
   thing=${1%/}
-  test ! -f ${thing}.tar.asc
-  tar cv -C ${d} ${t} | gpg --batch -q -c -a --cipher-algo AES256 -o ${thing}.tar.asc --passphrase "${passphrase}" -
-  chmod 600 ${thing}.tar.asc
-  rm -rf ${thing}
+  test ! -f "${thing}.tar.asc"
+
+  tar \
+    --xattrs \
+    --xattrs-include='*' \
+    -cv -C "$d" "$t" |
+  gpg --batch -q -c -a --cipher-algo AES256 \
+      --passphrase "${passphrase}" \
+      -o "${thing}.tar.asc" -
+
+  chmod 600 "${thing}.tar.asc"
+  rm -rf "${thing}"
 
 # Decrypt a directory.tar.asc to directory/
-elif [ "${1: -8:8}" == ".tar.asc" ]; then
-  test ! -d "${1/.tar.asc/}"
-  gpg --batch -q --no-tty -o- --passphrase "${passphrase}" -d ${1} | tar xvf - -C ${d}
-  rm -f ${1}
+elif [[ "$1" == *.tar.asc ]]; then
+  out="${1/.tar.asc/}"
+  test ! -d "$out"
+
+  gpg --batch -q --no-tty --passphrase "${passphrase}" -d "$1" |
+  tar \
+    --xattrs \
+    --xattrs-include='*' \
+    -xvf - -C "$d"
+
+  rm -f "$1"
 fi
+
