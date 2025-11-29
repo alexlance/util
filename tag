@@ -118,33 +118,17 @@ do_search() {
     return 0
 }
 
-slugify_path() {
-    local path="$1"
-    path="${path#./}"
-    path="${path//\//__}"
-    echo "$path"
-}
-
 # Open gwenview on matching files
 do_view() {
     # Prevent set -e from killing us if no matches:
     files="$(do_search "$@")"
-
     if [ -z "$files" ]; then
         echo "No matches."
         return 0
     fi
-
-    dir="$(mktemp -d -p .)"
-
-    while IFS= read -r f; do
-        slug=$(slugify_path "$f")
-        ln -rsv "$f" "$dir/$slug"
-    done <<< "$files"
-
-    gwenview "$dir/" > /dev/null 2>&1
-
-    [[ "$dir" == *tmp* ]] && rm -rfv "$dir"
+    readarray -d '' arr < <(printf "%s\n" "$files" | tr '\n' '\0')
+    echo "gwenview ${arr[@]}"
+    gwenview "${arr[@]}" >/dev/null 2>&1
 }
 
 
