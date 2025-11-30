@@ -209,10 +209,10 @@ do_edit() {
 # Begin!
 if [[ $# -eq 0 ]]; then
     echo "Usage:"
-    echo "  tagger --search TAGS..."
-    echo "  tagger --view TAGS..."
-    echo "  tagger --dump"
-    echo "  tagger --edit addtag -removetag -- file1 file2"
+    echo "  tag -s/--search TAGS..."
+    echo "  tag -v/--view TAGS..."
+    echo "  tag -d/--dump"
+    echo "  tag -e/--edit addtag -removetag -- file1 file2"
     echo ""
     echo "  TAGS format: one+two three+four -five  (one && two) || (three && four) && !five"
     exit 1
