@@ -1,11 +1,10 @@
 tmux new-session -d -s home -n mail
-tmux send-keys -t '=home:=mail' 'ssh mail' Enter
 tmux new-window -d -t '=home:' -n paw
 tmux split-window -d -t '=home:=paw' -l 65
 tmux send-keys -t '=home:=paw.{top}' 'firefox' Enter
-tmux send-keys -t '=home:=paw.{bottom}' 'paw mail:Passwords' Enter
+tmux send-keys -t '=home:=paw.{bottom}' 'paw localhost:/fang/Private/Passwords' Enter
 tmux select-pane -t '=home:=paw.{bottom}'
-tmux new-window -d -t '=home:' -n lexer -c /home/alla/lexer/ops-infra
-tmux new-window -d -t '=home:' -n lexer -c /home/alla/lexer/ops-infra
+tmux new-window -d -t '=home:'
+tmux new-window -d -t '=home:'
 tmux attach-session -t '=home'
 
