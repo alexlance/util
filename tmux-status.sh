@@ -1,25 +1,5 @@
 #!/bin/bash
 
-#if /sbin/ifconfig | grep tun -A1 | grep -q 10.22.0; then
-#  echo -n "#[fg=red]◉#[fg=white] "
-#else
-#  echo -n "#[fg=grey]○#[fg=white] "
-#fi
-#
-#if /sbin/ifconfig | grep tun -A1 | grep -q 10.19.0; then
-#  echo -n "#[fg=green]◉#[fg=white] "
-#else
-#  echo -n "#[fg=grey]○#[fg=white] "
-#fi
-#
-#if curl -s https://alexlance.com/ip | grep -qE '^103.'; then
-#  echo -n "#[fg=yellow]◉#[fg=white]"
-#else
-#  echo -n "#[fg=grey]○#[fg=white]"
-#fi
-#
-#echo -n " "
-
 swap=$(free --mega | grep Swap | awk '{print $3}')
 [ "${swap}" -ne "0" ] && echo -n "${swap}mb "
 [ "${swap}" -gt 2000 ] && ratpoison -c "echo swap ${swap}mb"

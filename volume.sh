@@ -22,17 +22,13 @@ progress_bar() {
     echo
 }
 
-
 pulsemixer --unmute
-
 if [ "$1" = "up" ]; then
   pulsemixer --change-volume +10
-  # ratpoison -c "echo $(pulsemixer --get-volume)"
 else
   pulsemixer --change-volume -10
-  # ratpoison -c "echo $(pulsemixer --get-volume)"
 fi
 
-avg=$(pulsemixer --get-volume | awk '{avg=($1+$2+$3+$4)/4; printf "%d\n", avg}')
+avg=$(pulsemixer --get-volume | tr ' ' '\n' | awk '{ sum += $1; n++ } END { if (n>0) print sum/n }')
 avg=$(progress_bar $avg)
 ratpoison -c "echo  $avg"
