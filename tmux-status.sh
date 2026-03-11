@@ -1,8 +1,9 @@
 #!/bin/bash
 
+vpn=""
 swap=$(free --mega | grep Swap | awk '{print $3}')
 [ "${swap}" -ne "0" ] && echo -n "${swap}mb "
-[ "${swap}" -gt 2000 ] && ratpoison -c "echo swap ${swap}mb"
+[ "${swap}" -gt 4000 ] && ratpoison -c "echo swap ${swap}mb"
 
 if [ "$(hostname)" == "lyra" ]; then
   b="$(acpi -b 2>/dev/null | grep -oE '[0-9]+%')"
@@ -11,6 +12,11 @@ if [ "$(hostname)" == "lyra" ]; then
   n="$(acpi -b 2>/dev/null | grep -i discharging | grep -oE '[0-9]+%' | grep -oE '[0-9]+')"
   [ "${n}" ] && [ "${n}" -lt 7 ] && ratpoison -c "echo battery ${b}"
   [ "${n}" ] && [ "${n}" -lt 4 ] && mplayer /home/alla/bin/battery.mp3
+
+  if ip a | grep -q "nz:"; then
+    vpn=" #[fg=green,bold]•VPN"
+  fi
 fi
 
-echo "#[fg=blue,bold]$(date '+%l:%M%P %Y-%m-%d %a')"
+
+echo "#[fg=blue,bold]$(date '+%l:%M%P %Y-%m-%d %a')${vpn}"
